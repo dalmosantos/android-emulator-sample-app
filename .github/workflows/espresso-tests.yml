@@ -1,0 +1,20 @@
+name: Android tests
+on:
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    name: Run Android Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Wait for emulator to start
+        run: adb wait-for-device
+
+      - name: Install APK
+        run: adb install path/to/your/app.apk
+
+      - name: Run Espresso tests
+        run: adb shell am instrument -w -r -e debug false -e class 'com.yourpackage.YourTestClass' com.yourpackage.test/androidx.test.runner.AndroidJUnitRunner

@@ -1,0 +1,79 @@
+name: Android emulator setup
+on:
+  workflow_dispatch:
+
+env:
+  ANDROID_ARCH: x86_64
+  ANDROID_BUILD_TOOLS_VERSION: 33.0.3
+  EMULATOR_TIMEOUT: 350
+
+jobs:
+  setup-emulator:
+    name: Setup Android Emulator
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - api-level: 21
+            android-version: 5
+            android-target: default
+          - api-level: 24
+            android-version: 7
+            android-target: google_apis
+          - api-level: 30
+            android-version: 11
+            android-target: google_apis_playstore
+          - api-level: 33
+            android-version: 13
+            android-target: google_apis_playstore
+
+    env:
+      ANDROID_TARGET: ${{ matrix.android-target }}
+      API_LEVEL: ${{ matrix.api-level }}
+      EMULATOR_NAME: nexus-${{ matrix.api-level }}
+      ANDROID_SDK_PACKAGES: >-
+        system-images;android-${{ matrix.api-level }};${{ matrix.android-target }};x86_64
+        platforms;android-${{ matrix.api-level }}
+        build-tools;33.0.3
+        platform-tools
+        emulator
+
+    steps:
+      - uses: actions/checkout@v3
+        
+      - name: Add Android tools to PATH
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/${{ env.ANDROID_BUILD_TOOLS_VERSION }}" >> $GITHUB_PATH
+
+      - name: Verify KVM
+        run: |
+              if [ -e /dev/kvm ]; then
+                echo "KVM is available"
+                ls -l /dev/kvm
+              else
+                echo "KVM is not available"
+                exit 1
+              fi
+
+      - name: Install SDK
+        run: |
+          yes Y | sdkmanager --licenses
+          sdkmanager --install ${ANDROID_SDK_PACKAGES}
+  
+      - name: Build emulator
+        run: |
+          echo "no" | avdmanager --verbose create avd --force \
+            -n $EMULATOR_NAME \
+            --abi "${ANDROID_TARGET}/${ANDROID_ARCH}" \
+            -k "system-images;android-${API_LEVEL};${ANDROID_TARGET};${ANDROID_ARCH}"
+
+      - name: Launch emulator
+        run: |
+          chmod +x ./start_emu_headless.sh
+          EMULATOR_TIMEOUT=$EMULATOR_TIMEOUT EMULATOR_NAME=$EMULATOR_NAME ./start_emu_headless.sh
+
+      - name: Wait for emulator to start
+        run: adb wait-for-device
+     
