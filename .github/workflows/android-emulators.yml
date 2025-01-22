@@ -1,0 +1,81 @@
+name: Android Emulators
+
+on: [push, pull_request]
+
+jobs:
+  setup-kvm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install KVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+          sudo adduser $USER libvirt
+          sudo adduser $USER kvm
+      - name: Check KVM
+        run: |
+          sudo kvm-ok
+
+  android-emulator-test:
+    needs: setup-kvm
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        android-version: [
+          {api: 21, name: "5", java: "8"},
+          {api: 24, name: "7", java: "8"},
+          {api: 30, name: "11", java: "11"},
+          {api: 33, name: "13", java: "17"}
+        ]
+      fail-fast: false
+
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.android-version.java }}
+          distribution: 'temurin'
+
+      - name: Install Android SDK
+        timeout-minutes: 10
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
+
+      - name: Accept licenses and install SDK packages
+        timeout-minutes: 10
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-${{ matrix.android-version.api }}" \
+            "system-images;android-${{ matrix.android-version.api }};default;x86_64" \
+            "emulator"
+
+      - name: Create and start emulator
+        timeout-minutes: 10
+        run: |
+          echo "no" | avdmanager create avd \
+            -n test \
+            -k "system-images;android-${{ matrix.android-version.api }};default;x86_64"
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd test \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -gpu swiftshader_indirect &
+
+      - name: Wait for emulator to start
+        timeout-minutes: 5
+        run: |
+          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
