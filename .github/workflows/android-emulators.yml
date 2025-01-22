@@ -16,7 +16,7 @@ jobs:
         ]
       fail-fast: false
 
-    name: android-emulator-test version:${{ matrix.android-version.name }}(api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
+    name: android-emulator-test (version:${{ matrix.android-version.name }}api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
 
     steps:
       - name: Setup Linux kernel for hardware acceleration
@@ -90,7 +90,6 @@ jobs:
             -gpu swiftshader_indirect \
             -accel on \
             -memory 4096 \
-            -cpu host \
             -qemu -enable-kvm &
 
       - name: Wait for emulator to start
