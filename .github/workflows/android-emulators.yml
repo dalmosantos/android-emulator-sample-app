@@ -22,10 +22,10 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          {api: 21, name: "5", java: "8"},
-          {api: 24, name: "7", java: "8"},
-          {api: 30, name: "11", java: "11"},
-          {api: 33, name: "13", java: "17"}
+          {api: 21, name: "android-5", java: "jdk-8"},
+          {api: 24, name: "android-7", java: "jdk-8"},
+          {api: 30, name: "android-11", java: "jdk-11"},
+          {api: 33, name: "android-13", java: "jdk-17"}
         ]
       fail-fast: false
 
@@ -65,17 +65,52 @@ jobs:
       - name: Create and start emulator
         timeout-minutes: 10
         run: |
-          echo "no" | avdmanager create avd \
-            -n test \
-            -k "system-images;android-${{ matrix.android-version.api }};default;x86_64"
-          $ANDROID_SDK_ROOT/emulator/emulator \
-            -avd test \
-            -no-window \
-            -no-audio \
-            -no-boot-anim \
-            -gpu swiftshader_indirect &
-
+              echo "no" | avdmanager create avd \
+                -n test \
+                -k "system-images;android-${{ matrix.android-version.api }};default;x86_64"
+              $ANDROID_SDK_ROOT/emulator/emulator \
+                -avd test \
+                -no-window \
+                -no-audio \
+                -no-boot-anim \
+                -no-snapshot \
+                -gpu swiftshader_indirect \
+                -memory 4096 \
+                -accel on &
+    
       - name: Wait for emulator to start
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
-          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+              # Wait for emulator to start
+              echo "Waiting for emulator to start..."
+              adb wait-for-device
+              
+              # Wait for boot animation to complete
+              echo "Waiting for boot animation to complete..."
+              timeout 600 adb shell -e '
+                while [[ "$(getprop init.svc.bootanim)" != "stopped" ]]; do 
+                  sleep 2
+                done
+              '
+              
+              # Wait for system to complete boot
+              echo "Waiting for system boot completion..."
+              timeout 600 adb shell -e '
+                while [[ "$(getprop sys.boot_completed)" != "1" ]]; do 
+                  sleep 2
+                done
+              '
+              
+              # Additional verification
+              echo "Verifying device status..."
+              adb shell getprop sys.boot_completed
+              adb shell input keyevent 82 # unlock device
+              echo "Emulator is ready"
+    
+      - name: Check emulator status
+        if: always()
+        run: |
+              adb devices
+              adb shell getprop sys.boot_completed
+              adb shell ps | grep system_server
+    
