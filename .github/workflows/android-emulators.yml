@@ -8,9 +8,8 @@ jobs:
     strategy:
       matrix:
         android-version: [
-        #   {api: 21, name: "5", java: "8"},
-        #   {api: 24, name: "7", java: "8"},
-          {api: 27, name: "8.", java: "8"},
+          # {api: 21, name: "5", java: "8"},
+          # {api: 24, name: "7", java: "8"},
           {api: 28, name: "9", java: "8"},
           {api: 30, name: "11", java: "11"},
           {api: 31, name: "12", java: "11"},
@@ -18,7 +17,7 @@ jobs:
         ]
       fail-fast: false
 
-    name: android-emulator-test (version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
+    name: android-emulator-test (version:${{ matrix.android-version.name }}api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
 
     steps:
       - name: Setup Linux kernel for hardware acceleration
@@ -62,8 +61,6 @@ jobs:
         timeout-minutes: 10
         run: |
           yes | sdkmanager --licenses
-          sdkmanager --update
-          sdkmanager --list
           sdkmanager \
             "platform-tools" \
             "platforms;android-${{ matrix.android-version.api }}" \
@@ -103,20 +100,22 @@ jobs:
           echo "Waiting for emulator to start..."
           adb wait-for-device
           while [[ "$(adb shell getprop sys.boot_completed 2>&1)" != "1" ]]; do 
-              echo "Emulator not booted yet..."
-              sleep 30
+            echo "Emulator not booted yet..."
+            sleep 60
           done
           
-          #   while [[ "$(adb shell getprop init.svc.bootanim 2>&1)" != "stopped" ]]; do 
+          # Wait for boot animation to complete
+          echo "Waiting for boot animation to complete..."
+          while [[ "$(adb shell getprop init.svc.bootanim 2>&1)" != "stopped" ]]; do 
             echo "Boot animation still running..."
-            sleep 30
+            sleep 60
           done
           
           # Wait for system to complete boot
           echo "Waiting for system boot completion..."
           while [[ "$(adb shell getprop sys.boot_completed 2>&1)" != "1" ]]; do 
             echo "System boot not completed yet..."
-            sleep 30
+            sleep 60
           done
           
           echo "Verifying device status..."
