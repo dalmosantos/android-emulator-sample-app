@@ -101,13 +101,15 @@ jobs:
           echo "Waiting for emulator to start..."
           adb wait-for-device
           while [[ "$(adb shell getprop sys.boot_completed 2>&1)" != "1" ]]; do 
-            echo "Emulator not booted yet..."
-            sleep 60
+              echo "Emulator not booted yet..."
+              echo "Current boot progress: $(adb shell getprop sys.boot_completed)"
+              echo "Current device state: $(adb get-state)"
+              echo "Current logcat output:"
+              adb logcat -d | tail -n 10
+              sleep 60
           done
           
-          # Wait for boot animation to complete
-          echo "Waiting for boot animation to complete..."
-          while [[ "$(adb shell getprop init.svc.bootanim 2>&1)" != "stopped" ]]; do 
+          #   while [[ "$(adb shell getprop init.svc.bootanim 2>&1)" != "stopped" ]]; do 
             echo "Boot animation still running..."
             sleep 60
           done
@@ -133,12 +135,13 @@ jobs:
       - name: Capture emulator screenshot
         if: always()
         run: |
-              timestamp=$(date +%Y%m%d%H%M%S)
-              adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}-${timestamp}.png
-    
+          timestamp=$(date +%Y%m%d%H%M%S)
+          adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}-${timestamp}.png
+      
       - name: Upload screenshot artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-         name: emulator-screenshot
-         path: emulator-screenshot-${{ matrix.android-version.api }}-*.png
+          name: emulator-screenshot-android-${{ matrix.android-version.api }}
+          path: emulator-screenshot-${{ matrix.android-version.api }}-*.png
+  
