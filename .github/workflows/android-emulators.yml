@@ -10,12 +10,13 @@ jobs:
         android-version: [
           {api: 21, name: "5", java: "8"},
           {api: 24, name: "7", java: "8"},
+          {api: 28, name: "9", java: "8"},
           {api: 30, name: "11", java: "11"},
           {api: 33, name: "13", java: "17"}
         ]
       fail-fast: false
 
-    name: android-emulator-test version:${{ matrix.android-version.name }},(api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
+    name: android-emulator-test version:${{ matrix.android-version.name }}(api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
 
     steps:
       - name: Setup Linux kernel for hardware acceleration
@@ -65,6 +66,10 @@ jobs:
             "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64" \
             "emulator"
 
+      - name: Verify SDK installation
+        run: |
+          sdkmanager --list
+
       - name: Create and start emulator
         timeout-minutes: 10
         run: |
@@ -85,6 +90,7 @@ jobs:
             -gpu swiftshader_indirect \
             -accel on \
             -memory 4096 \
+            -cpu host \
             -qemu -enable-kvm &
 
       - name: Wait for emulator to start
@@ -122,3 +128,15 @@ jobs:
         run: |
           adb devices
           adb shell getprop sys.boot_completed
+
+      - name: Capture emulator screenshot
+        if: always()
+        run: |
+          adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}.png
+
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: emulator-screenshot
+          path: emulator-screenshot-${{ matrix.android-version.api }}.png
