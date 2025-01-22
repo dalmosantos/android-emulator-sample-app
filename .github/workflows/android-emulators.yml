@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload screenshot artifact
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: emulator-screenshot
           path: emulator-screenshot-${{ matrix.android-version.api }}.png
