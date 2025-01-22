@@ -10,8 +10,10 @@ jobs:
         android-version: [
           {api: 21, name: "5", java: "8"},
           {api: 24, name: "7", java: "8"},
+          {api: 27, name: "8", java: "8"},
           {api: 28, name: "9", java: "8"},
           {api: 30, name: "11", java: "11"},
+          {api: 31, name: "12", java: "11"},
           {api: 33, name: "13", java: "17"}
         ]
       fail-fast: false
@@ -131,11 +133,12 @@ jobs:
       - name: Capture emulator screenshot
         if: always()
         run: |
-          adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}.png
-
+              timestamp=$(date +%Y%m%d%H%M%S)
+              adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}-${timestamp}.png
+    
       - name: Upload screenshot artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: emulator-screenshot
-          path: emulator-screenshot-${{ matrix.android-version.api }}.png
+         name: emulator-screenshot
+         path: emulator-screenshot-${{ matrix.android-version.api }}-*.png
