@@ -22,10 +22,10 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          {api: 21, name: "android-5", java: "jdk-8"},
-          {api: 24, name: "android-7", java: "jdk-8"},
-          {api: 30, name: "android-11", java: "jdk-11"},
-          {api: 33, name: "android-13", java: "jdk-17"}
+          {api: 21, name: "5", java: "8"},
+          {api: 24, name: "7", java: "8"},
+          {api: 30, name: "11", java: "11"},
+          {api: 33, name: "13", java: "17"}
         ]
       fail-fast: false
 
