@@ -8,16 +8,16 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          # {api: 21, name: "5", java: "8"},
-          # {api: 24, name: "7", java: "8"},
+          {api: 26, name: "8", java: "8"},
           {api: 28, name: "9", java: "8"},
+          {api: 29, name: "10", java: "10"},
           {api: 30, name: "11", java: "11"},
           {api: 31, name: "12", java: "11"},
           {api: 33, name: "13", java: "17"}
         ]
       fail-fast: false
 
-    name: android-emulator-test (version:${{ matrix.android-version.name }}api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
+    name: android-emulator-test (version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
 
     steps:
       - name: Setup Linux kernel for hardware acceleration
@@ -27,7 +27,6 @@ jobs:
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
           sudo chmod 777 /dev/kvm
-          
 
       - name: Enable KVM group perms
         run: |
@@ -142,3 +141,13 @@ jobs:
           name: emulator-screenshot-android-${{ matrix.android-version.api }}
           path: emulator-screenshot-${{ matrix.android-version.api }}-*.png
   
+      - name: Stop emulator
+        if: always()
+        run: |
+          adb emu kill
+
+      - name: Clean up environment
+        if: always()
+        run: |
+          sudo apt-get clean
+          rm -rf $ANDROID_SDK_ROOT
