@@ -116,7 +116,7 @@ jobs:
             -gpu swiftshader_indirect \
             -accel on \
             -memory 3072 \
-            -qemu -enable-kvm
+            -qemu -enable-kvm \
             -verbose &
 
       - name: Wait for emulator to start
