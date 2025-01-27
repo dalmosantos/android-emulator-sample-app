@@ -55,7 +55,6 @@ jobs:
           echo "JAVA_HOME is set to: $JAVA_HOME"
           echo "javac is set to: $(which javac)"
 
-
       - name: Install Android SDK
         timeout-minutes: 10
         env:
@@ -92,30 +91,30 @@ jobs:
       - name: Create and start emulator
         timeout-minutes: 10
         run: |
-            if [ "${{ matrix.android-version.api }}" == "21" ]; then
-              echo "no" | avdmanager create avd \
-                -n test \
-                -k "system-images;android-21;default;x86_64"
-            else
-              echo "no" | avdmanager create avd \
-                -n test \
-                -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
-            fi
+          if [ "${{ matrix.android-version.api }}" == "21" ]; then
+            echo "no" | avdmanager create avd \
+              -n test \
+              -k "system-images;android-21;default;x86_64"
+          else
+            echo "no" | avdmanager create avd \
+              -n test \
+              -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
+          fi
 
-            # Verify KVM is available
-            ls -la /dev/kvm
+          # Verify KVM is available
+          ls -la /dev/kvm
 
-            # Start emulator with hardware acceleration
-            $ANDROID_SDK_ROOT/emulator/emulator \
-              -avd test \
-              -no-window \
-              -no-audio \
-              -no-boot-anim \
-              -no-snapshot \
-              -gpu swiftshader_indirect \
-              -accel on \
-              -memory 4096 \
-              -qemu -enable-kvm &
+          # Start emulator with hardware acceleration
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd test \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -gpu swiftshader_indirect \
+            -accel on \
+            -memory 4096 \
+            -qemu -enable-kvm &
 
       - name: Wait for emulator to start
         timeout-minutes: 10
@@ -127,6 +126,8 @@ jobs:
             local message=$3
             while [[ "$(adb shell getprop $property 2>&1)" != "$value" ]]; do
               echo "$message"
+              echo "Current value of $property: $(adb shell getprop $property 2>&1)"
+              echo "Current emulator status: $(adb devices)"
               sleep 60
             done
           }
