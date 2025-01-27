@@ -116,7 +116,8 @@ jobs:
             -gpu swiftshader_indirect \
             -accel on \
             -memory 3072 \
-            -qemu -enable-kvm &
+            -qemu -enable-kvm
+            -verbose &
 
       - name: Wait for emulator to start
         timeout-minutes: 10
@@ -163,10 +164,8 @@ jobs:
           ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
           echo "Android: $ANDROID_VERSION"
 
-          # Get adb devices
-          adb devices
-
           # Unlock screen
+          echo "Unlocking screen..."
           adb shell input keyevent 82
 
           # Test app launch
@@ -177,6 +176,7 @@ jobs:
           else
             echo "Failed to launch the Settings app."
             exit 1
+          fi
 
       - name: Capture emulator screenshot
         if: always()
