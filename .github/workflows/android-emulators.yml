@@ -9,7 +9,7 @@ jobs:
       matrix:
         android-version: [
           {api: 21, name: "5", java: "11"},
-          {api: 24, name: "7", java: "8"},
+          {api: 24, name: "7", java: "11"},
           # {api: 26, name: "8", java: "11"},
           # {api: 28, name: "9", java: "11"},
           # {api: 29, name: "10", java: "11"},
@@ -98,7 +98,7 @@ jobs:
               -k "system-images;android-21;default;x86_64"
           else
             echo "no" | avdmanager create avd \
-              -n test-android-${{ matrix.android-version.api }} \
+              -n test \
               -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
           fi
           
@@ -116,7 +116,7 @@ jobs:
             -no-snapshot \
             -gpu swiftshader_indirect \
             -accel auto \
-            -memory 3072 \
+            -memory 2048 \
             -selinux permissive \
             -qemu -enable-kvm &
   
