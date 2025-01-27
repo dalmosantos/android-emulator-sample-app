@@ -10,8 +10,8 @@ jobs:
         android-version: [
           {api: 21, name: "5", java: "11"},
           {api: 24, name: "7", java: "11"},
-          # {api: 26, name: "8", java: "8"},
-          # {api: 28, name: "9", java: "8"},
+          # {api: 26, name: "8", java: "11"},
+          # {api: 28, name: "9", java: "11"},
           # {api: 29, name: "10", java: "11"},
           # {api: 30, name: "11", java: "11"},
           # {api: 31, name: "12", java: "11"},
@@ -130,6 +130,7 @@ jobs:
               echo "$message"
               echo "Current value of $property: $(adb shell getprop $property 2>&1)"
               echo "Current emulator status: $(adb devices)"
+              adb logcat | grep -t "boot"
               sleep 60
             done
           }
@@ -139,25 +140,44 @@ jobs:
           adb wait-for-device
 
           # Wait for boot completion
+          echo "Waiting for system to complete boot..."
           wait_for_property "sys.boot_completed" "1" "System boot not completed yet..."
 
           # Wait for boot animation to complete
           echo "Waiting for system boot completion..."
           wait_for_property "init.svc.bootanim" "stopped" "Boot animation is still running..."
 
-          # Wait for system to complete boot
-          echo "Waiting for system to complete boot..."
-          wait_for_property "sys.boot_completed" "1" "System boot not completed yet..."
+          # Test for system to complete boot
+          echo "Testing system to complete boot..."
+          adb shell pm list packages
+          adb shell am start -a android.intent.action.VIEW -d "http://www.google.com"
 
           echo "Verifying device status..."
           adb shell getprop sys.boot_completed
           echo "Emulator is ready"
 
+
       - name: Check emulator status
         if: always()
         run: |
+          # Get Android version
+          ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
+          echo "Android: $ANDROID_VERSION"
+
+          # Get adb devices
           adb devices
-          adb shell getprop sys.boot_completed
+
+          # Unlock screen
+          adb shell input keyevent 82
+
+          # Test app launch
+          echo "Testing app launch (Settings)..."
+          adb shell am start -a android.settings.SETTINGS &> /dev/null
+          if [ $? -eq 0 ]; then
+            echo "Settings app launched successfully."
+          else
+            echo "Failed to launch the Settings app."
+            exit 1
 
       - name: Capture emulator screenshot
         if: always()
