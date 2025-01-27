@@ -130,7 +130,6 @@ jobs:
               echo "$message"
               echo "Current value of $property: $(adb shell getprop $property 2>&1)"
               echo "Current emulator status: $(adb devices)"
-              adb logcat | grep -i "boot"
               sleep 60
             done
           }
