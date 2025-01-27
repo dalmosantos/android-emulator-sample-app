@@ -114,8 +114,8 @@ jobs:
             -no-boot-anim \
             -no-snapshot \
             -gpu swiftshader_indirect \
-            -accel on \
-            -memory 4096 \
+            -accel auto \
+            -memory 3072 \
             -selinux permissive \
             -qemu -enable-kvm &
   
