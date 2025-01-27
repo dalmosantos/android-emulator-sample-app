@@ -8,18 +8,17 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          {api: 21, name: "5", java: "11"},
           {api: 24, name: "7", java: "11"},
-          # {api: 26, name: "8", java: "11"},
-          # {api: 28, name: "9", java: "11"},
-          # {api: 29, name: "10", java: "11"},
-          # {api: 30, name: "11", java: "11"},
-          # {api: 31, name: "12", java: "11"},
-          # {api: 33, name: "13", java: "17"}
+          {api: 26, name: "8", java: "11"},
+          {api: 28, name: "9", java: "11"},
+          {api: 29, name: "10", java: "11"},
+          {api: 30, name: "11", java: "11"},
+          {api: 31, name: "12", java: "11"},
+          {api: 33, name: "13", java: "17"}
         ]
       fail-fast: false
 
-    name: android-emulator-test (version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }})
+    name: android-emulator-test {version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }}}
 
     steps:
       - name: Setup Linux kernel for hardware acceleration
@@ -74,33 +73,18 @@ jobs:
         timeout-minutes: 10
         run: |
           yes | sdkmanager --licenses
-          if [ "${{ matrix.android-version.api }}" == "21" ]; then
-            sdkmanager \
-              "platform-tools" \
-              "platforms;android-21" \
-              "system-images;android-21;default;x86_64" \
-              "emulator"
-          else
-            sdkmanager \
-              "platform-tools" \
-              "platforms;android-${{ matrix.android-version.api }}" \
-              "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64" \
-              "emulator"
-          fi
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-${{ matrix.android-version.api }}" \
+            "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64" \
+            "emulator"
 
       - name: Create and start emulator
         timeout-minutes: 10
         run: |
-          if [ "${{ matrix.android-version.api }}" == "21" ]; then
-            echo "no" | avdmanager create avd \
-              -n Nexus_5 \
-              -d "Nexus 5" \
-              -k "system-images;android-21;default;x86_64"
-          else
-            echo "no" | avdmanager create avd \
-              -n test \
-              -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
-          fi
+          echo "no" | avdmanager create avd \
+            -n test \
+            -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
           
           export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
           $ANDROID_SDK_ROOT/emulator/emulator -version
@@ -116,7 +100,7 @@ jobs:
             -no-snapshot \
             -gpu swiftshader_indirect \
             -accel auto \
-            -memory 2048 \
+            -memory 4096 \
             -selinux permissive \
             -qemu -enable-kvm &
   
