@@ -8,8 +8,8 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          {api: 21, name: "5", java: "8"},
-          {api: 24, name: "7", java: "8"},
+          {api: 21, name: "5", java: "11"},
+          {api: 24, name: "7", java: "11"},
           # {api: 26, name: "8", java: "8"},
           # {api: 28, name: "9", java: "8"},
           # {api: 29, name: "10", java: "11"},
@@ -25,7 +25,7 @@ jobs:
       - name: Setup Linux kernel for hardware acceleration
         run: |
           sudo apt-get update
-          sudo apt-get install -y cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients
+          sudo apt-get install -y cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients libnss3
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
           sudo chmod 777 /dev/kvm
@@ -98,7 +98,7 @@ jobs:
           else
             echo "no" | avdmanager create avd \
               -n test \
-              -k "system-images;android-${{ matrix.android-version.api }};default;x86_64"
+              -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
           fi
           
           export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
