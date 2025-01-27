@@ -9,7 +9,7 @@ jobs:
       matrix:
         android-version: [
           {api: 21, name: "5", java: "11"},
-          {api: 24, name: "7", java: "11"},
+          {api: 24, name: "7", java: "8"},
           # {api: 26, name: "8", java: "11"},
           # {api: 28, name: "9", java: "11"},
           # {api: 29, name: "10", java: "11"},
@@ -93,11 +93,12 @@ jobs:
         run: |
           if [ "${{ matrix.android-version.api }}" == "21" ]; then
             echo "no" | avdmanager create avd \
-              -n test \
+              -n Nexus_5 \
+              -d "Nexus 5" \
               -k "system-images;android-21;default;x86_64"
           else
             echo "no" | avdmanager create avd \
-              -n test \
+              -n test-android-${{ matrix.android-version.api }} \
               -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
           fi
           
