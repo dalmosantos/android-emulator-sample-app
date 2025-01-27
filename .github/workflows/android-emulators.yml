@@ -98,11 +98,13 @@ jobs:
           else
             echo "no" | avdmanager create avd \
               -n test \
-              -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
+              -k "system-images;android-${{ matrix.android-version.api }};default;x86_64"
           fi
+          
+          export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
+          $ANDROID_SDK_ROOT/emulator/emulator -version
+          $ANDROID_SDK_ROOT/emulator/emulator -list-avds 
 
-          # Verify KVM is available
-          ls -la /dev/kvm
 
           # Start emulator with hardware acceleration
           $ANDROID_SDK_ROOT/emulator/emulator \
@@ -113,7 +115,7 @@ jobs:
             -no-snapshot \
             -gpu swiftshader_indirect \
             -accel on \
-            -memory 4096 \
+            -memory 3072 \
             -qemu -enable-kvm &
 
       - name: Wait for emulator to start
