@@ -115,10 +115,10 @@ jobs:
             -no-snapshot \
             -gpu swiftshader_indirect \
             -accel on \
-            -memory 3072 \
-            -qemu -enable-kvm \
-            -verbose &
-
+            -memory 4096 \
+            -selinux permissive \
+            -qemu -enable-kvm &
+  
       - name: Wait for emulator to start
         timeout-minutes: 10
         run: |
