@@ -14,7 +14,8 @@ jobs:
           {api: 29, name: "10", java: "11"},
           {api: 30, name: "11", java: "11"},
           {api: 31, name: "12", java: "11"},
-          {api: 33, name: "13", java: "17"}
+          {api: 33, name: "13", java: "17"},
+          {api: 34, name: "14", java: "17"}
         ]
       fail-fast: false
 
@@ -88,7 +89,14 @@ jobs:
           
           export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
           $ANDROID_SDK_ROOT/emulator/emulator -version
-          $ANDROID_SDK_ROOT/emulator/emulator -list-avds 
+          $ANDROID_SDK_ROOT/emulator/emulator -list-avds
+
+          # Determine memory size based on Android version
+          if [ "${{ matrix.android-version.api }}" -eq 24 ]; then
+            MEMORY_SIZE=3072
+          else
+            MEMORY_SIZE=4096
+          fi
 
 
           # Start emulator with hardware acceleration
@@ -100,7 +108,7 @@ jobs:
             -no-snapshot \
             -gpu swiftshader_indirect \
             -accel auto \
-            -memory 4096 \
+            -memory ${MEMORY_SIZE} \
             -selinux permissive \
             -qemu -enable-kvm &
   
