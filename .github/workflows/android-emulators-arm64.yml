@@ -1,0 +1,196 @@
+name: Android Emulators
+
+on: [push, pull_request]
+
+jobs:
+  android-emulator-test:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        android-version: [
+          {api: 24, name: "7", java: "11"},
+          {api: 26, name: "8", java: "11"},
+          {api: 28, name: "9", java: "11"},
+          {api: 29, name: "10", java: "11"},
+          {api: 30, name: "11", java: "11"},
+          {api: 31, name: "12", java: "11"},
+          {api: 33, name: "13", java: "17"},
+          {api: 34, name: "14", java: "17"}
+        ]
+      fail-fast: false
+
+    name: android-emulator-test {version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }}}
+
+    steps:
+      - name: Setup Linux kernel for hardware acceleration
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients libnss3
+          sudo adduser $USER kvm
+          sudo chown $USER /dev/kvm
+          sudo chmod 777 /dev/kvm
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          kvm-ok
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.android-version.java }}
+          distribution: 'temurin'
+          architecture: 'arm64'
+
+      - name: Set JAVA_HOME and javac
+        run: |
+          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
+          echo "javac=$(which javac)" >> $GITHUB_ENV
+          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_PATH
+          echo "javac=$(which javac)" >> $GITHUB_PATH
+
+      - name: Verify JAVA_HOME setup
+        run: |
+          echo "JAVA_HOME is set to: $JAVA_HOME"
+          echo "javac is set to: $(which javac)"
+
+      - name: Install Android SDK
+        timeout-minutes: 10
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+        run: |
+          sudo apt-get install -y wget unzip
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
+
+      - name: Accept licenses and install SDK packages
+        timeout-minutes: 10
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-${{ matrix.android-version.api }}" \
+            "system-images;android-${{ matrix.android-version.api }};google_apis;arm64-v8a" \
+            "emulator"
+
+      - name: Create and start emulator
+        timeout-minutes: 10
+        run: |
+          echo "no" | avdmanager create avd \
+            -n test \
+            -k "system-images;android-${{ matrix.android-version.api }};google_apis;arm64-v8a"
+          
+          export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
+          $ANDROID_SDK_ROOT/emulator/emulator -version
+          $ANDROID_SDK_ROOT/emulator/emulator -list-avds
+
+          # Determine memory size based on Android version
+          if [ "${{ matrix.android-version.api }}" -eq 24 ]; then
+            MEMORY_SIZE=3072
+          else
+            MEMORY_SIZE=4096
+          fi
+
+          # Start emulator with hardware acceleration
+          $ANDROID_SDK_ROOT/emulator/emulator \
+            -avd test \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -gpu swiftshader_indirect \
+            -accel auto \
+            -memory ${MEMORY_SIZE} \
+            -selinux permissive \
+            -qemu -enable-kvm &
+  
+      - name: Wait for emulator to start
+        timeout-minutes: 10
+        run: |
+          #function to wait for a specific property to reach a desired value
+          wait_for_property() {
+            local property=$1
+            local value=$2
+            local message=$3
+            while [[ "$(adb shell getprop $property 2>&1)" != "$value" ]]; do
+              echo "$message"
+              echo "Current value of $property: $(adb shell getprop $property 2>&1)"
+              echo "Current emulator status: $(adb devices)"
+              sleep 60
+            done
+          }
+          
+          # Wait for emulator to start
+          echo "Waiting for emulator to start..."
+          adb wait-for-device
+
+          # Wait for boot completion
+          echo "Waiting for system to complete boot..."
+          wait_for_property "sys.boot_completed" "1" "System boot not completed yet..."
+
+          # Wait for boot animation to complete
+          echo "Waiting for system boot completion..."
+          wait_for_property "init.svc.bootanim" "stopped" "Boot animation is still running..."
+
+          # Test for system to complete boot
+          echo "Testing system to complete boot..."
+          adb shell pm list packages
+          adb shell am start -a android.intent.action.VIEW -d "http://www.google.com"
+
+          echo "Verifying device status..."
+          adb shell getprop sys.boot_completed
+          echo "Emulator is ready"
+
+
+      - name: Check emulator status
+        if: always()
+        run: |
+          # Get Android version
+          ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
+          echo "Android: $ANDROID_VERSION"
+
+          # Unlock screen
+          echo "Unlocking screen..."
+          adb shell input keyevent 82
+
+          # Test app launch
+          echo "Testing app launch (Settings)..."
+          adb shell am start -a android.settings.SETTINGS &> /dev/null
+          if [ $? -eq 0 ]; then
+            echo "Settings app launched successfully."
+          else
+            echo "Failed to launch the Settings app."
+            exit 1
+          fi
+
+      - name: Capture emulator screenshot
+        if: always()
+        run: |
+          timestamp=$(date +%Y%m%d%H%M%S)
+          adb exec-out screencap -p > emulator-screenshot-${{ matrix.android-version.api }}-${timestamp}.png
+
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-screenshot-android-${{ matrix.android-version.api }}
+          path: emulator-screenshot-${{ matrix.android-version.api }}-*.png
+
+      - name: Stop emulator
+        if: always()
+        run: |
+          adb emu kill
+
+      - name: Clean up environment
+        if: always()
+        run: |
+          sudo apt-get clean
+          rm -rf $ANDROID_SDK_ROOT
