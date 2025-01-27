@@ -25,7 +25,7 @@ jobs:
       - name: Setup Linux kernel for hardware acceleration
         run: |
           sudo apt-get update
-          sudo apt-get install -y cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients libnss3
+          sudo apt-get install -y qemu-kvm bridge-utils qemu-system-arm qemu-system-aarch64 libvirt-daemon-system libvirt-clients
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
           sudo chmod 777 /dev/kvm
