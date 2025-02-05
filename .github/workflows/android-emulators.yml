@@ -22,6 +22,9 @@ jobs:
     name: android-emulator-test {version:${{ matrix.android-version.name }},api:${{ matrix.android-version.api }},java:${{ matrix.android-version.java }}}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Linux kernel for hardware acceleration
         run: |
           sudo apt-get update
@@ -98,7 +101,6 @@ jobs:
             MEMORY_SIZE=4096
           fi
 
-
           # Start emulator with hardware acceleration
           $ANDROID_SDK_ROOT/emulator/emulator \
             -avd test \
@@ -149,6 +151,11 @@ jobs:
           adb shell getprop sys.boot_completed
           echo "Emulator is ready"
 
+      - name: Build the project
+        run: ./gradlew build
+
+      - name: Run tests
+        run: ./gradlew connectedAndroidTest
 
       - name: Check emulator status
         if: always()
