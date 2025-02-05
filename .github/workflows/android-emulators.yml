@@ -65,6 +65,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
+            ~/.android
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
@@ -75,11 +76,11 @@ jobs:
           echo "javac=$(which javac)" >> $GITHUB_ENV
           echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_PATH
           echo "javac=$(which javac)" >> $GITHUB_PATH
-
-      - name: Verify JAVA_HOME setup
-        run: |
-          echo "JAVA_HOME is set to: $JAVA_HOME"
-          echo "javac is set to: $(which javac)"
+          echo "====================================================================="
+          echo "               JAVA_HOME is set to: $JAVA_HOME"
+          echo "               JAVAC is set to: $(which javac)"
+          echo "====================================================================="
+         
 
       - name: Install Android SDK
         timeout-minutes: 15
@@ -140,59 +141,49 @@ jobs:
             -qemu -enable-kvm &
   
       - name: Wait for emulator to start
-        timeout-minutes: 15
+        timeout-minutes: 10
         run: |
-          #function to wait for a specific property to reach a desired value
-          wait_for_property() {
-            local property=$1
-            local value=$2
-            local message=$3
-            local max_attempts=15
-            local attempt=1
-            
-            while [[ "$(adb shell getprop $property 2>&1)" != "$value" ]]; do
-              if [ $attempt -ge $max_attempts ]; then
-                echo "Maximum attempts reached waiting for $property"
-                exit 1
-              fi
-              echo "$message"
-              echo "Current value of $property: $(adb shell getprop $property 2>&1)"
-              echo "Current emulator status: $(adb devices)"
-              sleep 60
-              ((attempt++))
-            done
+          MAX_ATTEMPTS=10
+          SLEEP_INTERVAL=15  # Reduced from 30 to 15 seconds
+           
+          # Function to check boot status
+          check_boot_status() {
+              adb shell getprop sys.boot_completed 2>/dev/null || echo "0"
           }
-          
-          # Wait for emulator to start
-          echo "Waiting for emulator to start..."
-          adb wait-for-device
-
-          # Wait for boot completion
-          echo "Waiting for system to complete boot..."
-          wait_for_property "sys.boot_completed" "1" "System boot not completed yet..."
-
-          # Wait for boot animation to complete
-          echo "Waiting for system boot completion..."
-          wait_for_property "init.svc.bootanim" "stopped" "Boot animation is still running..."
-
-          # Test for system to complete boot
-          echo "Testing system to complete boot..."
-          adb shell pm list packages
-          adb shell am start -a android.intent.action.VIEW -d "http://www.google.com"
-
-          # Verify device status
-          # Get Android version
-          ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
-          echo "Android: $ANDROID_VERSION"
-
-          # Unlock screen
-          echo "Unlocking screen..."
-          adb shell input keyevent 82
-
-          echo "Verifying device status..."
+      
+          # Wait for emulator with optimized polling
+          for ((attempt=1; attempt <= MAX_ATTEMPTS; attempt++)); do
+              if [ "$(check_boot_status)" == "1" ]; then
+                  echo "Emulator is ready!"
+                  break
+              fi
+                  
+              echo "Waiting for emulator to start... Attempt $attempt of $MAX_ATTEMPTS"
+              sleep $SLEEP_INTERVAL
+          done
+      
+          # Exit if boot not completed
+          if [ "$(check_boot_status)" != "1" ]; then
+              echo "Emulator failed to start within the timeout!"
+                  exit 1
+              fi
+      
+          # Device status verification in parallel
+          {
+              ANDROID_VERSION=$(adb shell getprop ro.build.version.release)
+              echo "Android: $ANDROID_VERSION"
+          } &
+      
+          {
+              echo "Unlocking screen..."
+              adb shell input keyevent 82
+          } &
+      
+          # Wait for background tasks to complete
+          wait
+          echo "Verifying final device status..."
           adb shell getprop sys.boot_completed
           echo "Emulator is ready"
-          
           
       - name: Upload APK to emulator
         run: |
@@ -201,22 +192,40 @@ jobs:
       - name: Run tests
         run: |
           unset ANDROID_SDK_ROOT
-          ./gradlew connectedAndroidTest --no-daemon
+          ./gradlew connectedAndroidTest --no-daemon --parallel
 
+          - name: Set timestamp
+          if: always()
+          run: echo "timestamp=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+        
+      - name: Capture emulator screenshot
+        if: always()
+        run: |
+          mkdir -p artifacts/${{ env.timestamp }}/screenshots
+          adb exec-out screencap -p > artifacts/${{ env.timestamp }}/screenshots/emulator-screenshot-${{ matrix.android-version.api }}.png
+        
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+            name: emulator-screenshot-android-${{ matrix.android-version.api }}
+            path: artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/screenshots/*.png
+        
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-api-${{ matrix.android-version.api }}
+          path: |
+              artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/results/**/build/reports/
+              artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/results/**/build/outputs/androidTest-results/
+          retention-days: 1
 
-      - name: Stop emulator
+      - name: Clean up and stop emulator
         if: always()
         run: |
           adb emu kill
-
-      - name: Clean up environment
-        if: always()
-        run: |
           sudo apt-get clean
           rm -rf $ANDROID_HOME
-
-      - name: Clean workspace after build
-        if: always()
-        run: |
           echo "Cleaning workspace after build..."
           sudo rm -rf ${{ github.workspace }}/*
