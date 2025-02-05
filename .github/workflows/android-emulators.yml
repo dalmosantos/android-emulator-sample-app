@@ -207,10 +207,10 @@ jobs:
           unset ANDROID_SDK_ROOT
           ./gradlew connectedAndroidTest --no-daemon --parallel
 
-      # Open the app
-      - name: Open the app
-        run: |
-          adb shell monkey -p com.example.android.testing.espresso.BasicSample -c android.intent.category.LAUNCHER 1
+      # # Open the app
+      # - name: Open the app
+      #   run: |
+      #     adb shell monkey -p com.example.android.testing.espresso.BasicSample -c android.intent.category.LAUNCHER 1
 
       # Artifact Collection
       - name: Capture emulator screenshot
