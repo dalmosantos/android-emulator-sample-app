@@ -192,7 +192,7 @@ jobs:
       - name: Run tests
         run: |
           unset ANDROID_SDK_ROOT
-          ./gradlew connectedAndroidTest --no-daemon --p
+          ./gradlew connectedAndroidTest --no-daemon --parallel
 
       - name: Set timestamp
         if: always()
