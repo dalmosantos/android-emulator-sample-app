@@ -9,6 +9,7 @@ jobs:
     
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_EMULATOR_USE_SYSTEM_LIBS: 1
       TZ: America/Sao_Paulo
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -117,9 +118,10 @@ jobs:
         run: |
           echo "no" | avdmanager create avd \
             -n test \
-            -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64"
+            -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64" \
+            --force
           
-          export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
+          export ${{ env.ANDROID_EMULATOR_USE_SYSTEM_LIBS }}
           $ANDROID_HOME/emulator/emulator -version
           $ANDROID_HOME/emulator/emulator -list-avds
 
@@ -233,7 +235,7 @@ jobs:
       - name: Clean up and stop emulator
         if: always()
         run: |
-          adb emu kill
+          adb emu kill || echo "Emulator already stopped"
           sudo apt-get clean
           rm -rf $ANDROID_HOME
           echo "Cleaning workspace after build..."
