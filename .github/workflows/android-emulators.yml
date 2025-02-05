@@ -13,12 +13,12 @@ jobs:
     strategy:
       matrix:
         android-version: [
-          {api: 24, name: "7", java: "8"},
-          {api: 26, name: "8", java: "8"},
-          {api: 28, name: "9", java: "11"},
-          {api: 29, name: "10", java: "11"},
-          {api: 30, name: "11", java: "11"},
-          {api: 31, name: "12", java: "11"},
+          {api: 24, name: "7", java: "17"},
+          {api: 26, name: "8", java: "17"},
+          {api: 28, name: "9", java: "17"},
+          {api: 29, name: "10", java: "17"},
+          {api: 30, name: "11", java: "17"},
+          {api: 31, name: "12", java: "17"},
           {api: 33, name: "13", java: "17"},
           {api: 34, name: "14", java: "17"}
         ]
@@ -104,7 +104,9 @@ jobs:
             "emulator"
 
       - name: Build the project
-        run: ./gradlew build --no-daemon
+        run: |
+          unset ANDROID_SDK_ROOT
+          ./gradlew build --no-daemon
 
       - name: Create and start emulator
         timeout-minutes: 15
