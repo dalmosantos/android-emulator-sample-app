@@ -9,7 +9,6 @@ jobs:
     
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      ANDROID_EMULATOR_USE_SYSTEM_LIBS: 1
       TZ: America/Sao_Paulo
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -121,7 +120,7 @@ jobs:
             -k "system-images;android-${{ matrix.android-version.api }};google_apis;x86_64" \
             --force
           
-          export ${{ env.ANDROID_EMULATOR_USE_SYSTEM_LIBS }}
+          export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
           $ANDROID_HOME/emulator/emulator -version
           $ANDROID_HOME/emulator/emulator -list-avds
 
