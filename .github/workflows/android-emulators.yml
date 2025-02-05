@@ -197,8 +197,9 @@ jobs:
       - name: Set timestamp and ARTIFACTS_BASE_PATH
         if: always()
         run: |
-          echo "timestamp=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
-          echo "ARTIFACTS_BASE_PATH=artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}" >> $GITHUB_ENV
+          timestamp=$(date +%Y%m%d%H%M)
+          echo "timestamp=${timestamp}" >> $GITHUB_ENV
+          echo "ARTIFACTS_BASE_PATH=artifacts/${{ matrix.android-version.api }}-${timestamp}" >> $GITHUB_ENV
 
       # Test Execution
       - name: Run tests
