@@ -35,3 +35,13 @@ ext {
     runnerVersion = "1.6.1"
     espressoVersion = "3.6.1"
 }
+
+task captureScreenshot(type: Exec) {
+    def apiLevel = project.hasProperty('apiLevel') ? project.apiLevel : 'default'
+    def timestamp = project.hasProperty('timestamp') ? project.timestamp : 'default'
+    def screenshotDir = "artifacts/${apiLevel}-${timestamp}/screenshots"
+    doFirst {
+        mkdir screenshotDir
+    }
+    commandLine 'sh', '-c', "adb exec-out screencap -p > ${screenshotDir}/emulator-screenshot-${apiLevel}.png"
+}

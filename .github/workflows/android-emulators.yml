@@ -9,6 +9,9 @@ jobs:
     
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      TZ: America/Sao_Paulo
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     
     strategy:
       matrix:
@@ -41,7 +44,7 @@ jobs:
       - name: Setup Linux kernel for hardware acceleration
         run: |
           sudo apt-get update
-          sudo apt-get install -y cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients libnss3
+          sudo apt-get install -qqy cpu-checker bridge-utils qemu-kvm libvirt-daemon-system libvirt-clients libnss3 wget unzip
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
           sudo chmod 777 /dev/kvm
@@ -85,7 +88,6 @@ jobs:
       - name: Install Android SDK
         timeout-minutes: 15
         run: |
-          sudo apt-get install -y wget unzip
           mkdir -p $ANDROID_HOME/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -O cmdline-tools.zip
           unzip cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
@@ -193,7 +195,7 @@ jobs:
         run: |
           unset ANDROID_SDK_ROOT
           ./gradlew connectedAndroidTest --no-daemon --parallel
-
+        
       - name: Set timestamp
         if: always()
         run: echo "timestamp=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
@@ -201,8 +203,7 @@ jobs:
       - name: Capture emulator screenshot
         if: always()
         run: |
-          mkdir -p artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/screenshots
-          adb exec-out screencap -p > artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/screenshots/emulator-screenshot-${{ matrix.android-version.api }}.png
+            ./gradlew captureScreenshot -PapiLevel=${{ matrix.android-version.api }} -Ptimestamp=${{ env.timestamp }}
         
       - name: Upload screenshot artifact
         if: always()
