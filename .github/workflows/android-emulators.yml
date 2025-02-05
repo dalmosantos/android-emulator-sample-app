@@ -207,13 +207,17 @@ jobs:
           unset ANDROID_SDK_ROOT
           ./gradlew connectedAndroidTest --no-daemon --parallel
 
+      # Open the app
+      - name: Open the app
+        run: |
+          adb shell monkey -p com.example.android.testing.espresso.BasicSample -c android.intent.category.LAUNCHER 1
+
       # Artifact Collection
       - name: Capture emulator screenshot
         if: always()
         run: |
-          ./gradlew captureScreenshot \
-            -PapiLevel=${{ matrix.android-version.api }} \
-            -Ptimestamp=${{ env.timestamp }}
+          mkdir -p ${{ env.ARTIFACTS_BASE_PATH }}/screenshots
+          adb exec-out screencap -p > ${{ env.ARTIFACTS_BASE_PATH }}/screenshots/emulator-screenshot-${{ matrix.android-version.api }}-${{ env.timestamp }}.png
         
       - name: Upload screenshot artifact
         if: always()
