@@ -199,7 +199,9 @@ jobs:
           adb install app/build/outputs/apk/debug/app-debug.apk
 
       - name: Run tests
-        run: ./gradlew connectedAndroidTest --no-daemon
+        run: |
+          unset ANDROID_SDK_ROOT
+          ./gradlew connectedAndroidTest --no-daemon
 
 
       - name: Stop emulator
