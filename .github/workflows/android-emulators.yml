@@ -192,17 +192,17 @@ jobs:
       - name: Run tests
         run: |
           unset ANDROID_SDK_ROOT
-          ./gradlew connectedAndroidTest --no-daemon --parallel
+          ./gradlew connectedAndroidTest --no-daemon --p
 
-          - name: Set timestamp
-          if: always()
-          run: echo "timestamp=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+      - name: Set timestamp
+        if: always()
+        run: echo "timestamp=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
         
       - name: Capture emulator screenshot
         if: always()
         run: |
-          mkdir -p artifacts/${{ env.timestamp }}/screenshots
-          adb exec-out screencap -p > artifacts/${{ env.timestamp }}/screenshots/emulator-screenshot-${{ matrix.android-version.api }}.png
+          mkdir -p artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/screenshots
+          adb exec-out screencap -p > artifacts/${{ matrix.android-version.api }}-${{ env.timestamp }}/screenshots/emulator-screenshot-${{ matrix.android-version.api }}.png
         
       - name: Upload screenshot artifact
         if: always()
